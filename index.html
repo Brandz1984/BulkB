@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCsent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white:    #ffffff;
+  --off:      #f7f8fa;
+  --border:   #e2e5ea;
+  --border2:  #d0d4dc;
+  --text:     #111827;
+  --muted:    #6b7280;
+  --muted2:   #9ca3af;
+  --accent:   #1d4ed8;
+  --accent-h: #1e40af;
+  --accent-lt:#eff6ff;
+  --green:    #059669;
+  --green-lt: #ecfdf5;
+  --red:      #dc2626;
+  --red-lt:   #fef2f2;
+  --yellow:   #d97706;
+  --sidebar:  250px;
+  --header:   56px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--off);
+  color: var(--text);
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+header {
+  height: var(--header);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.logo { font-size: 16px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+.logo em { font-style: normal; color: var(--accent); }
+
+.hd { width: 1px; height: 18px; background: var(--border); }
+.header-sub { font-size: 12px; color: var(--muted); }
+
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.status-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+  background: var(--off); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 20px;
+}
+.sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.sdot.on { background: var(--green); }
+
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar) 1fr 290px;
+  height: calc(100vh - var(--header));
+  overflow: hidden;
+}
+
+/* PANEL */
+.panel {
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+.ps { padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.ps:last-child { border-bottom: none; flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.slabel {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted2); margin-bottom: 10px;
+}
+
+/* AUTH */
+.google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 12px; background: var(--white); color: #3c4043;
+  border: 1px solid var(--border2); border-radius: 6px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: 'Inter', sans-serif; transition: all 0.15s;
+}
+.google-btn:hover { background: var(--off); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.google-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.user-row { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-lt); border: 1px solid #bfdbfe;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  overflow: hidden; flex-shrink: 0;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.u-meta { flex: 1; min-width: 0; }
+.u-name  { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.u-email { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn-link {
+  background: none; border: none; color: var(--muted2);
+  font-size: 11px; cursor: pointer; font-family: 'Inter', sans-serif;
+  padding: 2px; transition: color 0.15s; white-space: nowrap;
+}
+.btn-link:hover { color: var(--red); }
+
+/* UPLOAD */
+.upload-zone {
+  border: 1px dashed var(--border2); border-radius: 6px;
+  padding: 14px 10px; text-align: center; cursor: pointer;
+  transition: all 0.15s; background: var(--off);
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-lt); }
+.upload-zone.loaded { border-style: solid; border-color: #6ee7b7; background: var(--green-lt); }
+.uz-icon { font-size: 18px; margin-bottom: 4px; }
+.uz-main { font-size: 12px; font-weight: 500; color: var(--text); }
+.uz-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* COLUMN MAP */
+.col-map { margin-top: 10px; display: none; }
+.fl { display: block; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 3px; }
+.col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 7px; }
+.col-full { grid-column: span 2; }
+
+select, input[type="text"], input[type="number"], textarea {
+  width: 100%; background: var(--white); border: 1px solid var(--border2);
+  border-radius: 5px; color: var(--text); font-family: 'Inter', sans-serif;
+  font-size: 12px; padding: 6px 9px; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+}
+select:focus, input:focus, textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,78,216,0.08);
+}
+
+.map-preview {
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 5px; padding: 7px 9px;
+  font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 7px;
+}
+
+/* CONTACTS */
+.list-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-shrink: 0; }
+.ct { font-size: 12px; color: var(--muted); }
+.ct b { color: var(--accent); font-weight: 600; }
+
+.btn-sm {
+  background: none; border: 1px solid var(--border2); color: var(--muted);
+  padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-weight: 500; transition: all 0.15s;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+
+.cs { overflow-y: auto; flex: 1; }
+.cs::-webkit-scrollbar { width: 3px; }
+.cs::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.cr {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 7px; border-radius: 5px;
+  cursor: pointer; transition: background 0.1s; user-select: none;
+}
+.cr:hover { background: var(--off); }
+.cr.sel   { background: var(--accent-lt); }
+.cr input[type="checkbox"] { width: 13px; height: 13px; accent-color: var(--accent); flex-shrink: 0; padding: 0; cursor: pointer; }
+.ci { width: 24px; height: 24px; border-radius: 50%; background: var(--off); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+.cn { flex: 1; min-width: 0; }
+.cn-n { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-e { font-size: 10px; color: var(--muted2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.cd.sent { background: var(--green); }
+.cd.failed { background: var(--red); }
+.cd.sending { background: var(--yellow); animation: pulse 0.8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.empty { text-align: center; padding: 24px 10px; color: var(--muted2); font-size: 12px; line-height: 1.8; }
+.empty .ei { font-size: 22px; display: block; margin-bottom: 6px; }
+
+/* COMPOSE */
+.compose {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--white); border-right: 1px solid var(--border);
+}
+.compose-top { padding: 18px 24px 0; flex-shrink: 0; }
+.compose-h { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+.compose-fields { padding: 0 24px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.fw { display: flex; flex-direction: column; gap: 4px; }
+input.lg { font-size: 13px; padding: 8px 11px; }
+.body-wrap { flex: 1; display: flex; flex-direction: column; padding: 10px 24px 0; overflow: hidden; min-height: 0; }
+textarea#emailBody { flex: 1; resize: none; font-size: 13px; line-height: 1.75; padding: 11px 13px; border-radius: 6px; min-height: 0; }
+.body-hint { font-size: 11px; color: var(--muted2); margin-top: 5px; flex-shrink: 0; padding-bottom: 6px; }
+.body-hint code { background: var(--accent-lt); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-size: 10.5px; }
+
+.attach-bar { padding: 10px 24px 14px; flex-shrink: 0; border-top: 1px solid var(--border); }
+.attach-bar-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted2); margin-bottom: 7px; }
+.attach-trigger {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 11px; border: 1px solid var(--border2);
+  border-radius: 5px; font-size: 12px; color: var(--muted);
+  cursor: pointer; background: var(--off); transition: all 0.15s;
+  font-family: 'Inter', sans-serif; font-weight: 500;
+}
+.attach-trigger:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+.attach-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.ach {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--accent-lt); border: 1px solid #bfdbfe;
+  border-radius: 4px; padding: 3px 8px;
+  font-size: 11px; color: var(--accent); max-width: 180px;
+}
+.ach span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ach button { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; flex-shrink: 0; }
+.ach button:hover { color: var(--red); }
+
+/* RIGHT */
+.right { background: var(--off); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.right::-webkit-scrollbar { width: 3px; }
+.right::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+
+.prev-sub { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.prev-sub strong { color: var(--text); }
+.prev-body {
+  background: var(--off); border: 1px solid var(--border); border-radius: 5px;
+  padding: 11px; font-size: 12px; line-height: 1.75; color: var(--muted);
+  white-space: pre-wrap; word-break: break-word; max-height: 190px; overflow-y: auto;
+  font-family: Georgia, serif;
+}
+.prev-body::-webkit-scrollbar { width: 3px; }
+.prev-body::-webkit-scrollbar-thumb { background: var(--border2); }
+.prev-greeting { color: var(--text); font-weight: 700; }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stat { border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+.stat.g { border-color: #a7f3d0; background: var(--green-lt); }
+.stat.r { border-color: #fecaca; background: var(--red-lt); }
+.stat-num { font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
+.stat.g .stat-num { color: var(--green); }
+.stat.r .stat-num { color: var(--red); }
+.stat-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+
+.send-btn {
+  width: 100%; padding: 11px; background: var(--accent); color: #fff;
+  border: none; border-radius: 6px; font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; letter-spacing: 0.01em;
+}
+.send-btn:hover:not(:disabled) { background: var(--accent-h); box-shadow: 0 2px 8px rgba(29,78,216,0.3); }
+.send-btn:disabled { background: var(--border2); color: var(--muted2); cursor: not-allowed; box-shadow: none; }
+
+.delay-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 8px; }
+.delay-row input { width: 44px; text-align: center; padding: 4px 6px; }
+
+.progress-wrap { margin-top: 10px; display: none; }
+.pt { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.pf { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; width: 0%; }
+.pl { font-size: 11px; color: var(--muted); text-align: center; }
+
+.send-log {
+  background: #1a1a2e; border: 1px solid var(--border); border-radius: 5px;
+  padding: 9px; max-height: 130px; overflow-y: auto;
+  font-size: 11px; font-family: 'Courier New', monospace; display: none; margin-top: 8px;
+}
+.send-log::-webkit-scrollbar { width: 3px; }
+.send-log::-webkit-scrollbar-thumb { background: #444; }
+.lok  { color: #4ade80; }
+.lerr { color: #f87171; }
+.linf { color: #6b7280; }
+
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step  { display: flex; gap: 8px; }
+.sn {
+  width: 17px; height: 17px; border-radius: 50%; background: var(--accent-lt);
+  border: 1px solid #bfdbfe; color: var(--accent); font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+}
+.st { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.st strong { color: var(--text); }
+
+.btn-outline {
+  width: 100%; padding: 8px; background: var(--white);
+  border: 1px solid var(--border2); color: var(--muted);
+  border-radius: 5px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 10px;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ARC<em>sent</em></div>
+  <div class="hd"></div>
+  <div class="header-sub">Gmail Bulk Mailer</div>
+  <div class="header-right">
+    <div class="status-badge">
+      <div class="sdot" id="sdot"></div>
+      <span id="stext">Not connected</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="panel">
+
+    <div class="ps">
+      <div class="slabel">Gmail Account</div>
+      <div id="authSection">
+        <button class="google-btn" onclick="signIn()">
+          <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.5 0 6.5 1.2 8.9 3.2l6.7-6.7C35.3 2.4 30 0 24 0 14.7 0 6.7 5.4 2.8 13.3l7.8 6.1C12.5 13.1 17.8 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.2-4.4 6.8l6.9 5.4c4-3.7 6.2-9.2 6.2-16.2z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6L2.8 13.3C1 16.7 0 20.2 0 24s1 7.3 2.8 10.7l7.8-6.1z"/><path fill="#EA4335" d="M24 48c6 0 11.1-2 14.8-5.4l-6.9-5.4c-2 1.3-4.5 2.1-7.9 2.1-6.2 0-11.5-3.6-13.4-9l-7.8 6.1C6.7 42.6 14.7 48 24 48z"/></svg>
+          Sign in with Google
+        </button>
+      </div>
+      <div id="signedInSection" style="display:none;">
+        <div class="user-row">
+          <div class="avatar" id="uav">?</div>
+          <div class="u-meta">
+            <div class="u-name"  id="uname">—</div>
+            <div class="u-email" id="uemail">—</div>
+          </div>
+          <button class="btn-link" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="slabel">Recipients</div>
+      <div class="upload-zone" id="uploadZone"
+        onclick="document.getElementById('sheetInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div class="uz-icon">📊</div>
+        <div class="uz-main">Upload spreadsheet</div>
+        <div class="uz-sub">.csv · .xlsx · .xls</div>
+        <input type="file" id="sheetInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+      <div class="col-map" id="colMap">
+        <div class="col-grid">
+          <div>
+            <label class="fl">Title / Prefix</label>
+            <select id="colTitle" onchange="applyMapping()"><option value="">— None —</option></select>
+          </div>
+          <div>
+            <label class="fl">Full Name *</label>
+            <select id="colName" onchange="applyMapping()"></select>
+          </div>
+          <div class="col-full">
+            <label class="fl">Email Address *</label>
+            <select id="colEmail" onchange="applyMapping()"></select>
+          </div>
+        </div>
+        <div class="map-preview" id="mapPreview"></div>
+      </div>
+    </div>
+
+    <div class="ps">
+      <div class="list-toolbar">
+        <div class="ct"><b id="selCount">0</b> / <span id="totalCount">0</span> selected</div>
+        <button class="btn-sm" onclick="toggleSelectAll()">Select all</button>
+      </div>
+      <div class="cs" id="cScroll">
+        <div class="empty" id="emptyState"><span class="ei">👥</span>Upload a spreadsheet<br>to load contacts</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- COMPOSE -->
+  <main class="compose">
+    <div class="compose-top">
+      <div class="compose-h">Compose Email</div>
+    </div>
+    <div class="compose-fields">
+      <div class="fw">
+        <label class="fl">Subject Line</label>
+        <input type="text" id="emailSubject" class="lg" placeholder="Enter subject…" oninput="refresh()">
+      </div>
+      <div class="fw">
+        <label class="fl">Salutation</label>
+        <input type="text" id="emailSalutation" class="lg" value="Dear" placeholder="e.g. Dear / Hi / Good day" oninput="refresh()">
+      </div>
+    </div>
+    <div class="body-wrap">
+      <label class="fl" style="flex-shrink:0;margin-bottom:4px;">Email Body</label>
+      <textarea id="emailBody"
+        placeholder="Write your email body here…
+
+The personalised greeting (e.g. Dear Dr Jane Smith,) is added automatically above your text.
+
+Use {{name}} anywhere to re-insert the recipient's name inline." oninput="refresh()"></textarea>
+      <div class="body-hint">Greeting is auto-generated from your spreadsheet. Use <code>{{name}}</code> to personalise inline.</div>
+    </div>
+    <div class="attach-bar">
+      <div class="attach-bar-lbl">Attachments</div>
+      <div class="attach-trigger" onclick="document.getElementById('attachInput').click()"
+           ondragover="event.preventDefault()" ondrop="handleAttachDrop(event)">
+        📎 Add files
+        <input type="file" id="attachInput" multiple style="display:none" onchange="handleAttachSelect(event)">
+      </div>
+      <div class="attach-chips" id="attachChips"></div>
+    </div>
+  </main>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <div class="card">
+      <div class="card-title">Live Preview</div>
+      <div class="prev-sub" id="prevSubLine">Subject: <strong>—</strong></div>
+      <div class="prev-body" id="prevBody"><span style="color:#9ca3af">Start composing to see a preview…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Send</div>
+      <div class="stats-row">
+        <div class="stat g"><div class="stat-num" id="sentCount">0</div><div class="stat-lbl">Sent</div></div>
+        <div class="stat r"><div class="stat-num" id="failCount">0</div><div class="stat-lbl">Failed</div></div>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="startSending()" disabled>Send Emails</button>
+      <div class="delay-row">
+        <span>Delay:</span>
+        <input type="number" id="delayInput" value="2" min="1" max="15">
+        <span>sec between sends</span>
+      </div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="pt"><div class="pf" id="progressFill"></div></div>
+        <div class="pl" id="progressLbl">Preparing…</div>
+      </div>
+      <div class="send-log" id="sendLog"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Spreadsheet Format</div>
+      <div class="steps">
+        <div class="step"><div class="sn">1</div><div class="st">Needs at minimum an <strong>Email</strong> and <strong>Name</strong> column.</div></div>
+        <div class="step"><div class="sn">2</div><div class="st">Add a <strong>Title</strong> column (Dr, Prof, Mr…) to build personalised salutations.</div></div>
+        <div class="step"><div class="sn">3</div><div class="st">Map your columns after uploading. Works with <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong>.</div></div>
+      </div>
+      <button class="btn-outline" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '745747580965-k7o65q0snvc9992airfpbp2qtmc33ugu.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/gmail.send';
+
+let tokenClient = null;
+let accessToken = null;
+let contacts    = [];
+let selected    = new Set();
+let rawRows     = [];
+let headers     = [];
+let attachments = [];
+let isSending   = false;
+let sentCount   = 0, failCount = 0;
+
+// ── AUTH ────────────────────────────────────────────────────
+function signIn() {
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPES,
+      callback: resp => { if (!resp.error) { accessToken = resp.access_token; fetchUserInfo(); } }
+    });
+  }
+  tokenClient.requestAccessToken();
+}
+
+function fetchUserInfo() {
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } })
+    .then(r => r.json()).then(u => {
+      document.getElementById('authSection').style.display = 'none';
+      document.getElementById('signedInSection').style.display = 'block';
+      document.getElementById('uname').textContent  = u.name || u.email;
+      document.getElementById('uemail').textContent = u.email;
+      const av = document.getElementById('uav');
+      if (u.picture) av.innerHTML = `<img src="${u.picture}">`;
+      else av.textContent = (u.name || u.email)[0].toUpperCase();
+      document.getElementById('sdot').classList.add('on');
+      document.getElementById('stext').textContent = u.email;
+      refresh();
+    });
+}
+
+function signOut() {
+  accessToken = null;
+  document.getElementById('authSection').style.display = 'block';
+  document.getElementById('signedInSection').style.display = 'none';
+  document.getElementById('sdot').classList.remove('on');
+  document.getElementById('stext').textContent = 'Not connected';
+  refresh();
+}
+
+// ── SPREADSHEET ─────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if (f) processSheet(f);
+}
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) processSheet(f); e.target.value = ''; }
+
+function processSheet(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') { const r = new FileReader(); r.onload = e => parseCSV(e.target.result, file.name); r.readAsText(file); }
+  else if (['xlsx','xls'].includes(ext)) { const r = new FileReader(); r.onload = e => parseXLSX(e.target.result, file.name); r.readAsArrayBuffer(file); }
+  else alert('Use .csv, .xlsx, or .xls');
+}
+
+function parseCSV(text, filename) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return;
+  headers = parseCSVLine(lines[0]);
+  rawRows = lines.slice(1).map(parseCSVLine).filter(r => r.some(c => c.trim()));
+  onLoaded(filename);
+}
+
+function parseCSVLine(line) {
+  const res = []; let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') inQ = !inQ;
+    else if (ch === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  res.push(cur.trim()); return res;
+}
+
+function parseXLSX(buf, filename) {
+  if (typeof XLSX === 'undefined') { alert('Excel parser not loaded.'); return; }
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (data.length < 2) return;
+  headers = data[0].map(h => String(h));
+  rawRows = data.slice(1).filter(r => r.some(c => String(c).trim()));
+  onLoaded(filename);
+}
+
+function onLoaded(filename) {
+  const z = document.getElementById('uploadZone');
+  z.classList.add('loaded');
+  z.innerHTML = `<div class="uz-icon">✅</div><div class="uz-main">${filename}</div><div class="uz-sub">${rawRows.length} rows — click to replace</div><input type="file" id="sheetInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)">`;
+
+  const tS = document.getElementById('colTitle');
+  const nS = document.getElementById('colName');
+  const eS = document.getElementById('colEmail');
+  tS.innerHTML = '<option value="">— None —</option>';
+  nS.innerHTML = eS.innerHTML = '';
+  headers.forEach((h, i) => {
+    const o = `<option value="${i}">${h || 'Column '+(i+1)}</option>`;
+    tS.innerHTML += o; nS.innerHTML += o; eS.innerHTML += o;
+  });
+
+  const find = (...kw) => headers.findIndex(h => kw.some(k => h.toLowerCase().includes(k)));
+  const ti = find('title','prefix','salut'); const ni = find('name','full'); const ei = find('email','mail');
+  if (ti >= 0) tS.value = ti; if (ni >= 0) nS.value = ni; if (ei >= 0) eS.value = ei;
+
+  document.getElementById('colMap').style.display = 'block';
+  applyMapping();
+}
+
+function applyMapping() {
+  const ti = document.getElementById('colTitle').value;
+  const ni = parseInt(document.getElementById('colName').value);
+  const ei = parseInt(document.getElementById('colEmail').value);
+  contacts = []; let skipped = 0;
+  rawRows.forEach(row => {
+    const email = String(row[ei] || '').trim();
+    const name  = String(row[ni] || '').trim();
+    const title = ti !== '' ? String(row[parseInt(ti)] || '').trim() : '';
+    if (!email || !email.includes('@')) { skipped++; return; }
+    contacts.push({ email, name: name || email, title });
+  });
+  const prev = document.getElementById('mapPreview');
+  if (contacts.length) {
+    const ex = contacts[0]; const dn = ex.title ? `${ex.title} ${ex.name}` : ex.name;
+    prev.innerHTML = `<span style="color:var(--green);font-weight:600;">✓ ${contacts.length} contacts</span>`
+      + (skipped ? ` · <span style="color:var(--yellow);">${skipped} skipped</span>` : '')
+      + `<br>e.g. <strong>${dn}</strong> → ${ex.email}`;
+  } else { prev.innerHTML = `<span style="color:var(--red);">No valid contacts found.</span>`; }
+  selected = new Set(contacts.map((_, i) => i));
+  renderContacts(); refresh();
+}
+
+// ── CONTACTS ────────────────────────────────────────────────
+function renderContacts() {
+  const sc = document.getElementById('cScroll');
+  sc.innerHTML = '';
+  if (!contacts.length) {
+    sc.innerHTML = `<div class="empty"><span class="ei">👥</span>Upload a spreadsheet<br>to load contacts</div>`;
+    document.getElementById('totalCount').textContent = '0';
+    document.getElementById('selCount').textContent   = '0';
+    return;
+  }
+  contacts.forEach((c, i) => {
+    const init = c.name.split(' ').filter(Boolean).slice(-2).map(w=>w[0]).join('').toUpperCase();
+    const dn   = c.title ? `${c.title} ${c.name}` : c.name;
+    const row  = document.createElement('div');
+    row.className = 'cr' + (selected.has(i) ? ' sel' : '');
+    row.id = `row-${i}`;
+    row.onclick = () => toggleContact(i);
+    row.innerHTML = `<input type="checkbox" ${selected.has(i)?'checked':''} onclick="event.stopPropagation();toggleContact(${i})"><div class="ci">${init}</div><div class="cn"><div class="cn-n">${dn}</div><div class="cn-e">${c.email}</div></div><div class="cd" id="dot-${i}"></div>`;
+    sc.appendChild(row);
+  });
+  document.getElementById('totalCount').textContent = contacts.length;
+  document.getElementById('selCount').textContent   = selected.size;
+}
+
+function toggleContact(i) {
+  selected.has(i) ? selected.delete(i) : selected.add(i);
+  const chk = document.querySelector(`#row-${i} input`);
+  if (chk) chk.checked = selected.has(i);
+  document.getElementById(`row-${i}`)?.classList.toggle('sel', selected.has(i));
+  document.getElementById('selCount').textContent = selected.size;
+  refresh();
+}
+
+function toggleSelectAll() {
+  if (selected.size === contacts.length) selected.clear();
+  else contacts.forEach((_, i) => selected.add(i));
+  renderContacts(); refresh();
+}
+
+// ── ATTACHMENTS ─────────────────────────────────────────────
+function handleAttachDrop(e) { e.preventDefault(); [...e.dataTransfer.files].forEach(addAttachment); }
+function handleAttachSelect(e) { [...e.target.files].forEach(addAttachment); e.target.value = ''; }
+function addAttachment(file) {
+  const r = new FileReader();
+  r.onload = e => { attachments.push({ name: file.name, b64: e.target.result.split(',')[1], mime: file.type || 'application/octet-stream' }); renderChips(); };
+  r.readAsDataURL(file);
+}
+function removeAttachment(i) { attachments.splice(i, 1); renderChips(); }
+function renderChips() {
+  const list = document.getElementById('attachChips'); list.innerHTML = '';
+  attachments.forEach((a, i) => {
+    const chip = document.createElement('div'); chip.className = 'ach';
+    chip.innerHTML = `<span>📎 ${a.name}</span><button onclick="removeAttachment(${i})">×</button>`;
+    list.appendChild(chip);
+  });
+}
+
+// ── REFRESH ─────────────────────────────────────────────────
+function refresh() { updatePreview(); updateSendBtn(); }
+
+function updateSendBtn() {
+  const btn     = document.getElementById('sendBtn');
+  const n       = selected.size;
+  const subject = document.getElementById('emailSubject').value.trim();
+  const body    = document.getElementById('emailBody').value.trim();
+  const ok      = !!accessToken && n > 0 && !!subject && !!body && !isSending;
+  btn.disabled  = !ok;
+  btn.textContent = n > 0 ? `Send to ${n} recipient${n !== 1 ? 's' : ''}` : 'Send Emails';
+}
+
+function updatePreview() {
+  const subject    = document.getElementById('emailSubject').value.trim();
+  const salutation = document.getElementById('emailSalutation').value.trim() || 'Dear';
+  const body       = document.getElementById('emailBody').value;
+
+  document.getElementById('prevSubLine').innerHTML = `Subject: <strong>${subject || '—'}</strong>`;
+
+  const box = document.getElementById('prevBody');
+  if (!body.trim()) { box.innerHTML = `<span style="color:#9ca3af">Start composing to see a preview…</span>`; return; }
+
+  const ex = contacts.length ? contacts[0] : null;
+  const dn = ex ? (ex.title ? `${ex.title} ${ex.name}` : ex.name) : 'Dr Jane Smith';
+  const greeting = `${salutation} ${dn},`;
+  const rendered = body.replace(/\{\{name\}\}/g, dn);
+  box.innerHTML = `<span class="prev-greeting">${esc(greeting)}</span>\n\n${esc(rendered)}`;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── SEND ────────────────────────────────────────────────────
+function buildHtml(contact) {
+  const salutation = document.getElementById('emailSalutation').value.trim() || 'Dear';
+  const body       = document.getElementById('emailBody').value;
+  const dn         = contact.title ? `${contact.title} ${contact.name}` : contact.name;
+  const greeting   = `${salutation} ${dn},`;
+  const parsed     = body.replace(/\{\{name\}\}/g, dn);
+  const paras      = parsed.split(/\n\n+/).map(p => `<p style="margin:0 0 14px 0">${p.replace(/\n/g,'<br>')}</p>`).join('');
+  return `<div style="font-family:Georgia,serif;font-size:15px;line-height:1.8;color:#111827;max-width:600px;"><p style="margin:0 0 18px 0"><strong>${greeting}</strong></p>${paras}</div>`;
+}
+
+async function sendEmail(contact) {
+  const subject  = document.getElementById('emailSubject').value.trim();
+  const html     = buildHtml(contact);
+  const boundary = 'arcsent_' + Date.now();
+  let parts = [ `--${boundary}`, 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', btoa(unescape(encodeURIComponent(html))) ];
+  attachments.forEach(a => { parts = parts.concat([ `--${boundary}`, `Content-Type: ${a.mime}; name="${a.name}"`, 'Content-Transfer-Encoding: base64', `Content-Disposition: attachment; filename="${a.name}"`, '', a.b64 ]); });
+  parts.push(`--${boundary}--`);
+  const msgHeaders = [ `To: ${contact.email}`, `Subject: ${subject}`, 'MIME-Version: 1.0', `Content-Type: multipart/mixed; boundary="${boundary}"` ].join('\r\n');
+  const raw     = msgHeaders + '\r\n\r\n' + parts.join('\r\n');
+  const encoded = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw: encoded })
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || res.statusText); }
+  return res.json();
+}
+
+async function startSending() {
+  const toSend  = [...selected];
+  const subject = document.getElementById('emailSubject').value.trim();
+  const body    = document.getElementById('emailBody').value.trim();
+  if (!subject || !body || !toSend.length) return;
+  if (!confirm(`Send ${toSend.length} personalised email${toSend.length>1?'s':''}?`)) return;
+
+  isSending = true; sentCount = 0; failCount = 0;
+  document.getElementById('sentCount').textContent = '0';
+  document.getElementById('failCount').textContent = '0';
+  document.getElementById('progressWrap').style.display = 'block';
+  const log = document.getElementById('sendLog'); log.style.display = 'block'; log.innerHTML = '';
+  refresh();
+
+  const delay = (parseInt(document.getElementById('delayInput').value) || 2) * 1000;
+
+  for (let idx = 0; idx < toSend.length; idx++) {
+    const i   = toSend[idx]; const c = contacts[i];
+    const dot = document.getElementById(`dot-${i}`); if (dot) dot.className = 'cd sending';
+    document.getElementById('progressFill').style.width = Math.round((idx/toSend.length)*100) + '%';
+    document.getElementById('progressLbl').textContent  = `Sending ${idx+1} of ${toSend.length}…`;
+    try { await sendEmail(c); sentCount++; if (dot) dot.className = 'cd sent'; addLog(`✓ ${c.title?c.title+' ':''}${c.name} <${c.email}>`, 'lok'); }
+    catch (err) { failCount++; if (dot) dot.className = 'cd failed'; addLog(`✗ ${c.name} — ${err.message}`, 'lerr'); }
+    document.getElementById('sentCount').textContent = sentCount;
+    document.getElementById('failCount').textContent  = failCount;
+    if (idx < toSend.length - 1) await sleep(delay);
+  }
+
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('progressLbl').textContent  = `Complete — ${sentCount} sent, ${failCount} failed.`;
+  addLog(`─── ${sentCount} sent · ${failCount} failed ───`, 'linf');
+  isSending = false; refresh();
+}
+
+function sleep(ms)    { return new Promise(r => setTimeout(r, ms)); }
+function addLog(m, c) { const l = document.getElementById('sendLog'); const d = document.createElement('div'); d.className = c; d.textContent = m; l.appendChild(d); l.scrollTop = l.scrollHeight; }
+
+function downloadTemplate() {
+  const csv = 'Title,Name,Email\nDr,Jane Smith,jane@example.com\nProf,John Doe,john@example.com\nMr,Alex Jones,alex@example.com\n';
+  const a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent(csv); a.download = 'arcsent_template.csv'; a.click();
+}
+</script>
+</body>
+</html>
