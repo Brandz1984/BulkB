@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APSA Day 2026 — Gmail Bulk Mailer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b35;
+    --navy-mid: #172340;
+    --navy-light: #1e2f52;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --white: #f5f1eb;
+    --muted: #8a9ab8;
+    --success: #4caf80;
+    --error: #e05555;
+    --warn: #e0a855;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(ellipse at 20% 0%, rgba(201,168,76,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(201,168,76,0.05) 0%, transparent 50%);
+  }
+
+  header {
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .apsa-badge {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--navy);
+  }
+
+  .header-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--white);
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .status-pill {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--navy-mid);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gold-light);
+    letter-spacing: 0.03em;
+  }
+
+  .panel-body { padding: 24px 28px; }
+
+  /* Auth Section */
+  .auth-section {
+    text-align: center;
+    padding: 40px 28px;
+  }
+
+  .google-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: #fff;
+    color: #3c4043;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.02em;
+  }
+
+  .google-btn:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.3); transform: translateY(-1px); }
+
+  .google-btn svg { width: 20px; height: 20px; }
+
+  .auth-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .user-name { font-size: 14px; font-weight: 500; }
+  .user-email { font-size: 12px; color: var(--muted); }
+
+  .sign-out-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .sign-out-btn:hover { border-color: var(--error); color: var(--error); }
+
+  /* Email Preview */
+  .email-preview {
+    background: var(--navy-light);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--white);
+  }
+
+  .email-preview .preview-name {
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .email-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .email-meta-row {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .meta-label {
+    color: var(--muted);
+    min-width: 60px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  .meta-value { color: var(--white); }
+
+  /* Contacts List */
+  .contacts-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .contacts-count {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .contacts-count span {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .select-all-btn {
+    background: none;
+    border: 1px solid rgba(201,168,76,0.25);
+    color: var(--gold);
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .select-all-btn:hover { background: rgba(201,168,76,0.1); }
+
+  .contacts-list {
+    max-height: 380px;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+
+  .contacts-list::-webkit-scrollbar { width: 4px; }
+  .contacts-list::-webkit-scrollbar-track { background: transparent; }
+  .contacts-list::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .contact-row:last-child { border-bottom: none; }
+  .contact-row:hover { background: rgba(201,168,76,0.05); }
+
+  .contact-row.selected { background: rgba(201,168,76,0.08); }
+
+  .contact-check {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .contact-initials {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--navy-light);
+    border: 1px solid rgba(201,168,76,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .contact-info { flex: 1; min-width: 0; }
+
+  .contact-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .contact-email {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .contact-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .contact-status.sent { background: var(--success); }
+  .contact-status.failed { background: var(--error); }
+  .contact-status.sending { background: var(--warn); animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* Send Button */
+  .send-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(201,168,76,0.3); }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Progress */
+  .progress-section {
+    display: none;
+    margin-top: 20px;
+  }
+
+  .progress-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Right Panel */
+  .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .info-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .info-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+
+  .step {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-content { font-size: 13px; line-height: 1.6; color: #c5d0e0; }
+  .step-content strong { color: var(--white); }
+
+  .warn-box {
+    background: rgba(224,168,85,0.08);
+    border: 1px solid rgba(224,168,85,0.25);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 12px;
+    color: #e0c880;
+    line-height: 1.6;
+  }
+
+  .warn-box strong { display: block; margin-bottom: 4px; }
+
+  /* Log */
+  .send-log {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    display: none;
+  }
+
+  .send-log::-webkit-scrollbar { width: 3px; }
+  .send-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+
+  .log-line { margin-bottom: 4px; line-height: 1.5; }
+  .log-line.ok { color: var(--success); }
+  .log-line.err { color: var(--error); }
+  .log-line.info { color: var(--muted); }
+
+  /* Delay control */
+  .delay-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .delay-control input {
+    width: 60px;
+    padding: 6px 10px;
+    background: var(--navy-light);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: var(--white);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    text-align: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; }
+    header { padding: 20px 24px; }
+    main { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="apsa-badge">A</div>
+    <div>
+      <div class="header-title">APSA Day 2026 — Bulk Mailer</div>
+      <div class="header-sub">Gmail Integration · Personalised Invitations</div>
+    </div>
+  </div>
+  <div class="status-pill" id="statusPill">Not signed in</div>
+</header>
+
+<main>
+  <!-- LEFT: Main panel -->
+  <div>
+    <!-- Auth Panel -->
+    <div class="panel" style="margin-bottom: 24px;">
+      <div class="panel-header">
+        <div class="panel-title">1. Connect Gmail Account</div>
+      </div>
+      <div class="panel-body" id="authSection">
+        <div class="auth-section">
+          <button class="google-btn" onclick="signIn()">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#4285F4" d="M24 9.5c3.5 0 6.5 1.2 8.9 3.2l6.7-6.7C35.3 2.4 30 0 24 0 14.7 0 6.7 5.4 2.8 13.3l7.8 6.1C12.5 13.1 17.8 9.5 24 9.5z"/>
+              <path fill="#34A853" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.2-4.4 6.8l6.9 5.4c4-3.7 6.2-9.2 6.2-16.2z"/>
+              <path fill="#FBBC05" d="M10.6 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6L2.8 13.3C1 16.7 0 20.2 0 24s1 7.3 2.8 10.7l7.8-6.1z"/>
+              <path fill="#EA4335" d="M24 48c6 0 11.1-2 14.8-5.4l-6.9-5.4c-2 1.3-4.5 2.1-7.9 2.1-6.2 0-11.5-3.6-13.4-9l-7.8 6.1C6.7 42.6 14.7 48 24 48z"/>
+            </svg>
+            Sign in with Google
+          </button>
+          <div class="auth-note">
+            You'll be asked to grant permission to send emails on your behalf.<br>
+            Emails will be sent <strong>from your Gmail address</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="panel-body" id="signedInSection" style="display:none;">
+        <div class="user-info" id="userInfo">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <div>
+            <div class="user-name" id="userName">—</div>
+            <div class="user-email" id="userEmail">—</div>
+          </div>
+          <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+        </div>
+        <div style="font-size:13px; color: var(--success);">✓ Gmail connected. Ready to send.</div>
+      </div>
+    </div>
+
+    <!-- Contacts Panel -->
+    <div class="panel" style="margin-bottom: 24px;">
+      <div class="panel-header">
+        <div class="panel-title">2. Select Recipients</div>
+        <div class="contacts-count"><span id="selectedCount">0</span> of <span id="totalCount">0</span> selected</div>
+      </div>
+      <div class="panel-body">
+        <div class="contacts-toolbar">
+          <button class="select-all-btn" onclick="toggleSelectAll()">Select All</button>
+          <span style="font-size:12px; color: var(--muted);" id="selectAllLabel">None selected</span>
+        </div>
+        <div class="contacts-list" id="contactsList"></div>
+      </div>
+    </div>
+
+    <!-- Send Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">3. Send Personalised Emails</div>
+      </div>
+      <div class="panel-body">
+        <div class="email-meta">
+          <div class="email-meta-row">
+            <span class="meta-label">Subject</span>
+            <span class="meta-value">APSA DAY 2026 | Official Programme &amp; Invitation</span>
+          </div>
+          <div class="email-meta-row">
+            <span class="meta-label">From</span>
+            <span class="meta-value" id="fromLabel">Your Gmail address</span>
+          </div>
+          <div class="email-meta-row">
+            <span class="meta-label">Attach</span>
+            <span class="meta-value">APSA_Day_2026_-_Programme.pdf</span>
+          </div>
+        </div>
+
+        <div class="email-preview" id="emailPreview">
+          <div style="margin-bottom: 12px;">Dear <span class="preview-name">Dr [Recipient Name]</span>,</div>
+          <div>The National Committee of the Academy of Prosthodontics South Africa (APSA) warmly invites you to connect, reflect and redefine our specialty at APSA DAY 2026.</div>
+          <br>
+          <div>We have attached the programme for the day with a special message from our President, Dr Sandile Mpungose.</div>
+          <br>
+          <div>Looking forward to welcoming you on 1 April 2026 at the Lord Charles Hotel, Somerset West, Cape Town.</div>
+          <br>
+          <div>Kind Regards<br>National Committee<br>Academy of Prosthodontics South Africa</div>
+        </div>
+
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 13px; color: var(--muted); display:block; margin-bottom: 8px;">📎 Attach PDF Programme (optional but recommended)</label>
+          <input type="file" id="pdfAttachment" accept=".pdf" style="font-size:12px; color: var(--muted);">
+        </div>
+
+        <div class="delay-control">
+          <span>Delay between emails:</span>
+          <input type="number" id="delayInput" value="2" min="1" max="10">
+          <span>seconds</span>
+        </div>
+
+        <button class="send-btn" id="sendBtn" onclick="startSending()" disabled>
+          Send to Selected Recipients
+        </button>
+
+        <div class="progress-section" id="progressSection">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressText">Preparing...</div>
+        </div>
+
+        <div class="send-log" id="sendLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Info panel -->
+  <div class="right-panel">
+    <div class="info-card">
+      <div class="info-card-title">How It Works</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong>Sign in with Google</strong> — authorise this app to send emails via your Gmail account using OAuth 2.0.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>Select recipients</strong> — all 60+ prosthodontists are pre-loaded. Deselect any you don't want to include.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>Attach the PDF</strong> — upload the APSA Day 2026 programme PDF to include as an attachment.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong>Send</strong> — each email is personalised with the recipient's full name and sent one at a time with a small delay to avoid spam filters.</div>
+      </div>
+    </div>
+
+    <div class="warn-box" style="display:none;">
+      <strong>⚠ Gmail API Setup Required</strong>
+      This app uses the Gmail API via Google Identity Services. You need to configure a Google Cloud OAuth Client ID below before signing in. <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: var(--gold-light);">Create one here →</a>
+    </div>
+
+    <div class="info-card" style="display:none;">
+      <div class="info-card-title">Configure OAuth Client ID</div>
+      <div style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">Paste your Google Cloud OAuth 2.0 Client ID below. This is needed to authorise Gmail access.</div>
+      <input type="text" id="clientIdInput" placeholder="xxxx.apps.googleusercontent.com"
+        style="width:100%; padding: 10px 14px; background: var(--navy-light); border: 1px solid rgba(255,255,255,0.12); border-radius: 7px; color: var(--white); font-size: 12px; font-family: monospace; margin-bottom: 10px;">
+      <button onclick="saveClientId()" style="width:100%; padding: 10px; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); border-radius: 7px; cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif; transition: all 0.2s;"
+        onmouseover="this.style.background='rgba(201,168,76,0.25)'" onmouseout="this.style.background='rgba(201,168,76,0.15)'">
+        Save Client ID
+      </button>
+      <div style="font-size:11px; color: var(--muted); margin-top: 10px; line-height: 1.6;">
+        In GCP Console: APIs &amp; Services → Credentials → Create OAuth 2.0 Client → Web Application → Add <code style="color:var(--gold-light);">http://localhost</code> and your file's origin to Authorized JavaScript Origins.
+      </div>
+    </div>
+
+    <div class="info-card" id="summaryCard">
+      <div class="info-card-title">Send Summary</div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="text-align:center; padding: 12px; background: rgba(76,175,128,0.1); border: 1px solid rgba(76,175,128,0.2); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--success); font-family:'Cormorant Garamond',serif;" id="sentCount">0</div>
+          <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;">Sent</div>
+        </div>
+        <div style="text-align:center; padding: 12px; background: rgba(224,85,85,0.1); border: 1px solid rgba(224,85,85,0.2); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--error); font-family:'Cormorant Garamond',serif;" id="failedCount">0</div>
+          <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;">Failed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Google Identity / Gmail API scripts -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────
+let CLIENT_ID = '745747580965-k7o65q0snvc9992airfpbp2qtmc33ugu.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/gmail.send';
+
+// ─── CONTACTS DATA ────────────────────────────────────────
+const contacts = [
+  { email: "adellnaidoo@yahoo.com",            name: "Dr Adell Naidoo" },
+  { email: "ameeraessa@gmail.com",             name: "Dr Ameera Essa" },
+  { email: "aack@ionline.co.za",               name: "Dr Andrew Ackermann" },
+  { email: "vanaswegenane@gmail.com",          name: "Dr Ane van Aswegen" },
+  { email: "grotius@ilovemysmile.co.za",       name: "Dr Anton Grotius" },
+  { email: "drsingh@theprosthodontist.co.za",  name: "Dr Ashen Singh" },
+  { email: "ajj.dental@gmail.com",             name: "Dr Avi Jagathpal" },
+  { email: "bhavish@absamail.co.za",           name: "Dr Bhavish Harilal" },
+  { email: "bradfieldscharles@gmail.com",      name: "Dr Charles Bradfield" },
+  { email: "christiaan@drvorster.co.za",       name: "Dr Christiaan Vorster" },
+  { email: "jhvdh2@gmail.com",                 name: "Dr Cules van den Heever" },
+  { email: "dalehowes001@gmail.com",           name: "Prof Dale Howes" },
+  { email: "des.doman1@gmail.com",             name: "Dr Des Doman" },
+  { email: "dikhabisobwerinofa@wits.ac.za",    name: "Dr Dikhabiso Bwerinofa" },
+  { email: "drherbst@creativesmiles.co.za",    name: "Dr Dirk Herbst" },
+  { email: "drddevilliers@gmail.com",          name: "Dr Deon De Villiers" },
+  { email: "ebrahim.patel023@gmail.com",       name: "Dr Ebrahim Patel" },
+  { email: "doc@drcahi.com",                   name: "Dr Emile Cahi" },
+  { email: "Babiolakisgeorge@gmail.com",       name: "Dr George Babiolakis" },
+  { email: "drhddullabh@gmail.com",            name: "Dr Hemant Dullabh" },
+  { email: "theo.hermanvdb@gmail.com",         name: "Dr Herman van den Bergh" },
+  { email: "ian@driangrundingh.com",           name: "Dr Ian Grundlingh" },
+  { email: "idah.mmtlana@up.ac.za",            name: "Dr Idah Mmutlana" },
+  { email: "drjenniferjulyan@gmail.com",       name: "Dr Jennifer Julyan" },
+  { email: "Jchann9@gmail.com",               name: "Dr Johann Schoeman" },
+  { email: "karen.bennie@yahoo.com",           name: "Dr Karen Bennie" },
+  { email: "kamisha.naidu@gmail.com",          name: "Dr Kamisha Naidu" },
+  { email: "laurenbs0512@gmail.com",           name: "Dr Lauren Brown-Steenkamp" },
+  { email: "lotive.shabalala@up.ac.za",        name: "Dr Lotive Shabalala" },
+  { email: "Matshediso.Mothopi@wits.ac.za",    name: "Dr Matshediso Mothopi-Peri" },
+  { email: "maditi.maphutha89@gmail.com",      name: "Dr Maditi Maphutha" },
+  { email: "morwaswi.Mphahlele@wits.ac.za",    name: "Dr Morwaswi Mphahlele" },
+  { email: "maryrose.lekay@gmail.com",         name: "Dr Mary Rose Lekay Adams" },
+  { email: "Meriting.thokoane@wits.ac.za",     name: "Dr Meriting Thokoane" },
+  { email: "michaelm@live.co.za",              name: "Dr Michael Michael" },
+  { email: "prostho786@gmail.com",             name: "Dr Mohammed Ismail" },
+  { email: "tayobm@yahoo.com",                 name: "Dr Muhammed Tayob" },
+  { email: "NadhirB108@gmail.com",             name: "Dr Nadhir Biseswar" },
+  { email: "Naiesh@me.com",                    name: "Dr Naiesh Naidoo" },
+  { email: "nelsondentist@gmail.com",          name: "Dr Nelson Fernandes" },
+  { email: "neonetshilindi@gmail.com",         name: "Dr Neo Netshilindi" },
+  { email: "nielwork@mweb.co.za",              name: "Dr Niel Grundling" },
+  { email: "nomsabel@gmail.com",               name: "Dr Nomsa Ngobeni" },
+  { email: "reception@pvzy.co.za",             name: "Dr Paul van Zyl" },
+  { email: "peter.owen@wits.ac.za",            name: "Dr Peter Owen" },
+  { email: "info@drvmeulen.co.za",             name: "Dr Rudi van der Meulen" },
+  { email: "dmoipolai@gmail.com",              name: "Dr Pusetsa Dmoipolai" },
+  { email: "drrdool@gmail.com",                name: "Dr Rajesh Dool" },
+  { email: "mokgatlharp@gmail.com",            name: "Dr Refilwe Mokgatlha" },
+  { email: "rickyrahbe@matrix.co.za",          name: "Dr Ricky Rahbe" },
+  { email: "sidwhaanhaffajee@matrix.co.za",    name: "Dr Sidwhaan Haffajee" },
+  { email: "sssmuller@gmail.com",              name: "Dr Sanette Muller" },
+  { email: "mpungose@smu.ac.za",              name: "Dr Sandile Mpungose" },
+  { email: "schalkvdl007@gmail.com",           name: "Dr Schalk van der Linde" },
+  { email: "shadrack@kabinde.co.za",           name: "Dr Shadrack Kabinde" },
+  { email: "yvoods-moonsamy@wits.ac.za",      name: "Dr Yvonne Hoods-Moonsamy" },
+  { email: "drwefarao@gmail.com",              name: "Dr Warren Farao" },
+  { email: "asiawinifred@gmail.com",           name: "Dr Winifred Asia" },
+  { email: "thuhloyolisw@gmail.com",           name: "Dr Thuhloyoliswe" },
+  { email: "yvsolomons@gmail.com",             name: "Dr Yvette Solomons" },
+  { email: "zaheed@gmail.com",                 name: "Dr Zaheed" },
+  { email: "zunaidvally@gmail.com",            name: "Dr Zunaid Vally" }
+];
+
+// ─── STATE ────────────────────────────────────────────────
+let tokenClient = null;
+let accessToken = null;
+let selected = new Set(contacts.map((_, i) => i));
+let sentCount = 0, failedCount = 0;
+let isSending = false;
+
+// ─── INIT ─────────────────────────────────────────────────
+window.onload = () => {
+  const saved = localStorage.getItem('apsa_client_id');
+  if (saved) document.getElementById('clientIdInput').value = saved;
+  renderContacts();
+  updateCounts();
+};
+
+function saveClientId() {
+  const val = document.getElementById('clientIdInput').value.trim();
+  if (!val) return alert('Please enter a valid Client ID');
+  CLIENT_ID = val;
+  localStorage.setItem('apsa_client_id', val);
+  alert('Client ID saved. You can now sign in with Google.');
+}
+
+// ─── CONTACTS RENDER ──────────────────────────────────────
+function renderContacts() {
+  const list = document.getElementById('contactsList');
+  list.innerHTML = '';
+  contacts.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'contact-row' + (selected.has(i) ? ' selected' : '');
+    row.id = `row-${i}`;
+    row.onclick = () => toggleContact(i);
+
+    const initials = c.name.split(' ').slice(-2).map(w => w[0]).join('').toUpperCase();
+
+    row.innerHTML = `
+      <input class="contact-check" type="checkbox" ${selected.has(i) ? 'checked' : ''} 
+             onclick="event.stopPropagation(); toggleContact(${i})" id="chk-${i}">
+      <div class="contact-initials">${initials}</div>
+      <div class="contact-info">
+        <div class="contact-name">${c.name}</div>
+        <div class="contact-email">${c.email}</div>
+      </div>
+      <div class="contact-status" id="status-${i}"></div>
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('totalCount').textContent = contacts.length;
+}
+
+function toggleContact(i) {
+  if (selected.has(i)) selected.delete(i);
+  else selected.add(i);
+  document.getElementById(`chk-${i}`).checked = selected.has(i);
+  document.getElementById(`row-${i}`).classList.toggle('selected', selected.has(i));
+  updateCounts();
+}
+
+function toggleSelectAll() {
+  if (selected.size === contacts.length) {
+    selected.clear();
+  } else {
+    contacts.forEach((_, i) => selected.add(i));
+  }
+  renderContacts();
+  updateCounts();
+}
+
+function updateCounts() {
+  const n = selected.size;
+  document.getElementById('selectedCount').textContent = n;
+  document.getElementById('selectAllLabel').textContent = 
+    n === contacts.length ? 'All selected' : n === 0 ? 'None selected' : `${n} selected`;
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = !accessToken || n === 0 || isSending;
+  sendBtn.textContent = `Send to ${n} Selected Recipient${n !== 1 ? 's' : ''}`;
+}
+
+// ─── AUTH ─────────────────────────────────────────────────
+function signIn() {
+  if (!CLIENT_ID) {
+    alert('Please enter and save your Google OAuth Client ID first (right panel).');
+    return;
+  }
+
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (resp) => {
+        if (resp.error) { console.error(resp); return; }
+        accessToken = resp.access_token;
+        fetchUserInfo();
+      }
+    });
+  }
+  tokenClient.requestAccessToken();
+}
+
+function fetchUserInfo() {
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  }).then(r => r.json()).then(info => {
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('signedInSection').style.display = 'block';
+    document.getElementById('userName').textContent = info.name || info.email;
+    document.getElementById('userEmail').textContent = info.email;
+    document.getElementById('fromLabel').textContent = info.email;
+    const av = document.getElementById('userAvatar');
+    if (info.picture) av.innerHTML = `<img src="${info.picture}">`;
+    else av.textContent = (info.name || info.email)[0].toUpperCase();
+    document.getElementById('statusPill').textContent = '✓ Signed in';
+    updateCounts();
+  });
+}
+
+function signOut() {
+  accessToken = null;
+  document.getElementById('authSection').style.display = 'block';
+  document.getElementById('signedInSection').style.display = 'none';
+  document.getElementById('statusPill').textContent = 'Not signed in';
+  updateCounts();
+}
+
+// ─── EMAIL BUILDER ────────────────────────────────────────
+function buildEmailBody(name) {
+  return `Dear ${name},
+
+The National Committee of the Academy of Prosthodontics South Africa (APSA) warmly invites you to connect, reflect and redefine our specialty at APSA DAY 2026.
+
+We have attached the programme for the day with a special message from our President, Dr Sandile Mpungose.
+
+Looking forward to welcoming you on 1 April 2026 at the Lord Charles Hotel, Somerset West, Cape Town.
+
+Kind Regards
+National Committee
+Academy of Prosthodontics South Africa`;
+}
+
+function buildEmailBodyHtml(name) {
+  return `<div style="font-family: Georgia, serif; font-size: 15px; line-height: 1.8; color: #1a1a1a; max-width: 600px;">
+<p>Dear <strong>${name}</strong>,</p>
+<p>The National Committee of the Academy of Prosthodontics South Africa (APSA) warmly invites you to connect, reflect and redefine our specialty at <strong>APSA DAY 2026</strong>.</p>
+<p>We have attached the programme for the day with a special message from our President, Dr Sandile Mpungose.</p>
+<p>Looking forward to welcoming you on <strong>1 April 2026</strong> at the <strong>Lord Charles Hotel, Somerset West, Cape Town</strong>.</p>
+<br>
+<p>Kind Regards<br><strong>National Committee</strong><br>Academy of Prosthodontics South Africa</p>
+</div>`;
+}
+
+// ─── GMAIL API SEND ───────────────────────────────────────
+async function sendEmail(contact, pdfData, pdfName) {
+  const subject = 'APSA DAY 2026 | Official Programme & Invitation';
+  const to = contact.email;
+  const name = contact.name;
+
+  let rawMessage;
+
+  if (pdfData) {
+    // Multipart with attachment
+    const boundary = 'apsa_boundary_' + Date.now();
+    const htmlBody = buildEmailBodyHtml(name);
+    const textBody = buildEmailBody(name);
+
+    const parts = [
+      `--${boundary}`,
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
+      '',
+      btoa(unescape(encodeURIComponent(htmlBody))),
+      `--${boundary}`,
+      `Content-Type: application/pdf; name="${pdfName}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${pdfName}"`,
+      '',
+      pdfData,
+      `--${boundary}--`
+    ].join('\r\n');
+
+    const headers = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/mixed; boundary="${boundary}"`
+    ].join('\r\n');
+
+    rawMessage = headers + '\r\n\r\n' + parts;
+  } else {
+    const htmlBody = buildEmailBodyHtml(name);
+    rawMessage = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
+      '',
+      btoa(unescape(encodeURIComponent(htmlBody)))
+    ].join('\r\n');
+  }
+
+  const encodedMessage = btoa(unescape(encodeURIComponent(rawMessage)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ raw: encodedMessage })
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || response.statusText);
+  }
+  return await response.json();
+}
+
+// ─── SEND LOOP ────────────────────────────────────────────
+async function startSending() {
+  if (!accessToken) { alert('Please sign in with Google first.'); return; }
+  const toSend = [...selected];
+  if (toSend.length === 0) { alert('No recipients selected.'); return; }
+
+  if (!confirm(`You're about to send ${toSend.length} personalised emails. Continue?`)) return;
+
+  isSending = true;
+  sentCount = 0; failedCount = 0;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('progressSection').style.display = 'block';
+  const log = document.getElementById('sendLog');
+  log.style.display = 'block';
+  log.innerHTML = '';
+
+  // Get PDF if uploaded
+  let pdfData = null, pdfName = null;
+  const pdfFile = document.getElementById('pdfAttachment').files[0];
+  if (pdfFile) {
+    pdfData = await fileToBase64(pdfFile);
+    pdfName = pdfFile.name;
+    addLog(`📎 PDF attached: ${pdfName}`, 'info');
+  }
+
+  const delay = parseInt(document.getElementById('delayInput').value) * 1000 || 2000;
+
+  for (let idx = 0; idx < toSend.length; idx++) {
+    const i = toSend[idx];
+    const contact = contacts[i];
+    const statusDot = document.getElementById(`status-${i}`);
+    statusDot.className = 'contact-status sending';
+
+    const pct = Math.round((idx / toSend.length) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = `Sending ${idx + 1} of ${toSend.length}...`;
+
+    try {
+      await sendEmail(contact, pdfData, pdfName);
+      sentCount++;
+      statusDot.className = 'contact-status sent';
+      addLog(`✓ ${contact.name} <${contact.email}>`, 'ok');
+    } catch (err) {
+      failedCount++;
+      statusDot.className = 'contact-status failed';
+      addLog(`✗ ${contact.name} — ${err.message}`, 'err');
+    }
+
+    document.getElementById('sentCount').textContent = sentCount;
+    document.getElementById('failedCount').textContent = failedCount;
+
+    if (idx < toSend.length - 1) await sleep(delay);
+  }
+
+  document.getElementById('progressFill').style.width = '100%';
+  document.getElementById('progressText').textContent = 
+    `Done! ${sentCount} sent, ${failedCount} failed.`;
+  addLog(`─── Complete: ${sentCount} sent, ${failedCount} failed ───`, 'info');
+  isSending = false;
+  updateCounts();
+}
+
+// ─── UTILS ────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function addLog(msg, type) {
+  const log = document.getElementById('sendLog');
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.textContent = msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+</script>
+</body>
+</html>
